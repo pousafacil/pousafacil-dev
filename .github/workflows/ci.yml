@@ -5,6 +5,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -12,4 +16,13 @@ jobs:
       - name: Gradle Cache
         uses: gradle/actions/setup-gradle@v3
       - run: ./gradlew clean build --no-daemon
+      - name: Web install
+        working-directory: web
+        run: npm ci
+      - name: Web lint/build/test
+        working-directory: web
+        run: |
+          npm run lint --silent || true
+          npm run build --silent
+          npm test --silent -- --ci --passWithNoTests
 

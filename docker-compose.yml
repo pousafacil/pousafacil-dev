@@ -1,0 +1,43 @@
+version: "3.9"
+
+services:
+  api_gateway:
+    build: ./services/api_gateway
+    ports:
+      - "8080:8080"
+    environment:
+      - AUTH_SERVICE_URL=http://auth_service:8001
+      - BOOKINGS_SERVICE_URL=http://bookings_service:8002
+      - PAYMENTS_SERVICE_URL=http://payments_service:8003
+      - NOTIFICATIONS_SERVICE_URL=http://notifications_service:8004
+    depends_on:
+      - auth_service
+      - bookings_service
+      - payments_service
+      - notifications_service
+
+  auth_service:
+    build: ./services/auth_service
+    ports:
+      - "8001:8001"
+
+  bookings_service:
+    build: ./services/bookings_service
+    ports:
+      - "8002:8002"
+    volumes:
+      - bookings_db:/data
+
+  payments_service:
+    build: ./services/payments_service
+    ports:
+      - "8003:8003"
+
+  notifications_service:
+    build: ./services/notifications_service
+    ports:
+      - "8004:8004"
+
+volumes:
+  bookings_db: {}
+

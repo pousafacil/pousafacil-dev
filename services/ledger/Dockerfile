@@ -3,7 +3,7 @@
 FROM gradle:8.7.0-jdk21 AS builder
 WORKDIR /workspace
 COPY . .
-RUN gradle :services:ledger:bootJar --no-daemon
+RUN gradle --no-daemon clean :services:ledger:bootJar
 
 FROM eclipse-temurin:21-jre
 WORKDIR /app

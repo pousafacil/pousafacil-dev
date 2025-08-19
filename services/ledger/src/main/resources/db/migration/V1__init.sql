@@ -64,7 +64,9 @@ alter table accounts_ledger enable row level security;
 alter table postings enable row level security;
 
 create schema if not exists app;
-create or replace function app.current_tenant_id() returns uuid language sql stable as $$ select current_setting('app.tenant_id')::uuid $$;
+create or replace function app.current_tenant_id() returns uuid language sql stable as $$
+  select nullif(current_setting('app.tenant_id', true), '')::uuid
+$$;
 
 drop policy if exists tenant_isolation_select on customers;
 drop policy if exists tenant_isolation_write on customers;

@@ -43,8 +43,8 @@ class LedgerService(
         require(amount > BigDecimal.ZERO) { "amount must be > 0" }
         require(currency == "BRL") { "currency must be BRL" }
 
-        // Set tenant context for RLS
-        jdbc.update("set local app.tenant_id = :tenant_id", MapSqlParameterSource().addValue("tenant_id", tenantId))
+        // Set tenant context for RLS safely
+        jdbc.update("select set_config('app.tenant_id', :tenant_id::text, true)", MapSqlParameterSource().addValue("tenant_id", tenantId))
 
         val postingId = UUID.randomUUID()
         val params = MapSqlParameterSource()
@@ -68,7 +68,10 @@ class LedgerService(
             """.trimIndent()
             jdbc.update(sql, params)
         } catch (e: DataIntegrityViolationException) {
-            throw IdempotencyConflictException("Duplicate idempotency key for tenant")
+            if (e.message?.contains("idempotency") == true) {
+                throw IdempotencyConflictException("Duplicate idempotency key for tenant")
+            }
+            throw e
         }
 
         // Enqueue outbox event

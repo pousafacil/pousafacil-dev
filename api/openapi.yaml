@@ -1,0 +1,104 @@
+openapi: 3.0.3
+info:
+  title: AppBank API
+  version: 1.0.0
+components:
+  securitySchemes:
+    oauth2:
+      type: oauth2
+      flows:
+        clientCredentials:
+          tokenUrl: https://auth.example.com/oauth/token
+          scopes: {}
+security:
+  - oauth2: []
+paths:
+  /v1/ledger/postings:
+    post:
+      operationId: createPosting
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          required: true
+          schema: { type: string }
+        - in: header
+          name: X-Tenant-Id
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [debit_account_id, credit_account_id, amount, currency, reference_id]
+              properties:
+                debit_account_id: { type: string, format: uuid }
+                credit_account_id: { type: string, format: uuid }
+                amount: { type: string, pattern: '^\\d+\\.\\d{2}$' }
+                currency: { type: string, enum: [BRL] }
+                reference_id: { type: string }
+                metadata: { type: object, additionalProperties: true }
+      responses:
+        '201': { description: Created }
+        '409': { description: Duplicate (idempotent) }
+  /v1/payments/transfer:
+    post:
+      operationId: createInternalTransfer
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          required: true
+          schema: { type: string }
+        - in: header
+          name: X-Tenant-Id
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [from_account_id, to_account_id, amount, currency]
+              properties:
+                from_account_id: { type: string, format: uuid }
+                to_account_id: { type: string, format: uuid }
+                amount: { type: string, pattern: '^\\d+\\.\\d{2}$' }
+                currency: { type: string, enum: [BRL] }
+                description: { type: string }
+      responses:
+        '202': { description: Accepted }
+  /v1/pix/payments:
+    post:
+      operationId: createPixPayment
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          required: true
+          schema: { type: string }
+        - in: header
+          name: X-Tenant-Id
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - type: object
+                  required: [source_account_id, e2e_id, amount]
+                  properties:
+                    source_account_id: { type: string, format: uuid }
+                    e2e_id: { type: string }
+                    amount: { type: string, pattern: '^\\d+\\.\\d{2}$' }
+                - type: object
+                  required: [source_account_id, pix_key, amount]
+                  properties:
+                    source_account_id: { type: string, format: uuid }
+                    pix_key: { type: string }
+                    amount: { type: string, pattern: '^\\d+\\.\\d{2}$' }
+      responses:
+        '202': { description: Accepted }
+

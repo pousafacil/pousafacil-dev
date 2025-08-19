@@ -1,0 +1,57 @@
+version: '3.9'
+services:
+  postgres:
+    image: postgres:16
+    container_name: appbank-postgres
+    environment:
+      POSTGRES_USER: ledger
+      POSTGRES_PASSWORD: ledger
+      POSTGRES_DB: ledger
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ledger"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+  ledger:
+    build: ./services/ledger
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/ledger
+      SPRING_DATASOURCE_USERNAME: ledger
+      SPRING_DATASOURCE_PASSWORD: ledger
+    depends_on:
+      - postgres
+    ports:
+      - "8081:8081"
+  payments:
+    build: ./services/payments
+    environment:
+      # Payments is stubbed and does not need DB
+      JAVA_OPTS: -Xmx256m
+    ports:
+      - "8082:8082"
+  pix:
+    build: ./services/pix
+    environment:
+      JAVA_OPTS: -Xmx256m
+    ports:
+      - "8083:8083"
+  web:
+    build: ./web
+    environment:
+      BACKEND_LEDGER_URL: http://ledger:8081
+      BACKEND_PAYMENTS_URL: http://payments:8082
+      BACKEND_PIX_URL: http://pix:8083
+      DEFAULT_TENANT_ID: 11111111-1111-1111-1111-111111111111
+    depends_on:
+      - ledger
+      - payments
+      - pix
+    ports:
+      - "3000:3000"
+volumes:
+  pgdata: {}
+
